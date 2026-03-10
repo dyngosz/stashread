@@ -1,0 +1,17 @@
+import { defineConfig } from "vitest/config";
+import { svelte } from "@sveltejs/vite-plugin-svelte";
+
+export default defineConfig({
+  plugins: [svelte({ hot: !process.env.VITEST })],
+  test: {
+    environment: "happy-dom",
+    globals: true,
+    include: ["src/**/*.test.ts"],
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "lcov"],
+      include: ["src/lib/**/*.ts"],
+      exclude: ["src/lib/**/*.test.ts"],
+    },
+  },
+});
