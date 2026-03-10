@@ -14,6 +14,7 @@ stashread-implementation-plan.md
 stats.html
 stats-*.json
 .wxt
+wxt-env.d.ts
 web-ext.config.ts
 
 # Editor directories and files
