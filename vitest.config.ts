@@ -1,12 +1,13 @@
 import { defineConfig } from "vitest/config";
-import { svelte } from "@sveltejs/vite-plugin-svelte";
+import { WxtVitest } from "wxt/testing";
 
 export default defineConfig({
-  plugins: [svelte({ hot: !process.env.VITEST })],
+  plugins: [WxtVitest()],
   test: {
     environment: "happy-dom",
     globals: true,
     include: ["src/**/*.test.ts"],
+    setupFiles: ["src/lib/test-setup.ts"],
     coverage: {
       provider: "v8",
       reporter: ["text", "lcov"],
