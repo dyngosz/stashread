@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 .output
 .worktrees/
+stashread-implementation-plan.md
 stats.html
 stats-*.json
 .wxt
