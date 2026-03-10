@@ -11,8 +11,11 @@
     onsave: (updates: Partial<StashReadSettings>) => Promise<void>;
   } = $props();
 
-  let theme = $state(settings.theme);
-  let badgeCount = $state(settings.badgeCount);
+  // Extract initial values outside $state() to avoid Svelte 5 state_referenced_locally error
+  const initialTheme = settings.theme;
+  const initialBadgeCount = settings.badgeCount;
+  let theme = $state(initialTheme);
+  let badgeCount = $state(initialBadgeCount);
   let saving = $state(false);
 
   async function save() {
@@ -26,7 +29,7 @@
 <div class="flex flex-col h-full">
   <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
     <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">Settings</h2>
-    <button onclick={onclose} class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400">
+    <button onclick={onclose} aria-label="Close settings" class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
       </svg>
