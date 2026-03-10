@@ -1,36 +1,10 @@
 # StashRead
 
-A Firefox browser extension for saving web articles and generating EPUB reading packs for Kindle.
+A Firefox extension for saving web articles to read later — and sending them to your Kindle as EPUB reading packs.
 
-## Features
+The goal is simple: save anything you find online, manage your reading list in a sidebar, and when you're ready, bundle selected articles into a single EPUB file and send it to your Kindle. No account, no server, no subscription. Everything stays in your browser.
 
-- **Save articles** — toolbar click, right-click any link, or Alt+S
-- **Manage your reading list** — sidebar with search, filter (All/Unread/Favorites), and sort
-- **Import from Pocket** — migrate your library via Pocket's HTML export
-- **Export your data** — JSON backup or CSV export
-- **Generate EPUB packs** — select articles, generate a single EPUB, send to Kindle
-
-## Development
-
-```bash
-npm install
-npm run dev        # Opens Firefox with extension loaded + HMR
-npm run build      # Production build
-npm run zip        # Package for AMO submission
-npm run test       # Unit tests
-```
-
-## Tech Stack
-
-- [WXT](https://wxt.dev) — Vite-powered WebExtension framework
-- [Svelte 5](https://svelte.dev) — UI framework
-- [Tailwind CSS v4](https://tailwindcss.com) — Styling
-- [TypeScript](https://typescriptlang.org) — Strict mode
-- [Vitest](https://vitest.dev) — Unit testing
-
-## Privacy
-
-StashRead stores all data locally in your browser via `browser.storage.local`. No data is ever transmitted to any server.
+> **Status:** Early development. Core features are being built out.
 
 ## License
 
