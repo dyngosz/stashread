@@ -21,7 +21,7 @@ StashRead is a Firefox extension for saving articles to read later with EPUB gen
 - Use Svelte 5 runes: $props(), $state(), $derived(), $effect() — not Svelte 4 reactive syntax
 
 ## File Organization
-- src/entrypoints/ — background.ts, popup/, sidebar/, content.ts
+- src/entrypoints/ — background.ts, sidebar/, content.ts (no popup — sidebar is the main UI)
 - src/lib/ — storage.ts, models.ts, epub.ts, readability.ts, import-export.ts, utils.ts
 - src/components/ — shared Svelte components
 - src/assets/ — icons (SVG source), styles (global.css)

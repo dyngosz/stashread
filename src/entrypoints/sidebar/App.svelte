@@ -7,11 +7,16 @@
   import SettingsView from "../../components/SettingsView.svelte";
   import type { Article, FilterOptions, StashReadSettings } from "../../lib/models";
 
+  type SaveStatus = "idle" | "saving" | "saved" | "error";
+
   let articles = $state<Article[]>([]);
   let stats = $state({ total: 0, unread: 0, favorites: 0 });
   let settings = $state<StashReadSettings | null>(null);
   let loading = $state(true);
   let error = $state("");
+
+  let saveStatus = $state<SaveStatus>("idle");
+  let saveError = $state("");
 
   let rawQuery = $state("");
   let debouncedQuery = $state("");
@@ -54,6 +59,38 @@
       loading = false;
     }
   }
+
+  async function checkCurrentTab() {
+    try {
+      const result = await browser.runtime.sendMessage({ type: "GET_CURRENT_TAB_STATUS" });
+      saveStatus = result?.isSaved ? "saved" : "idle";
+    } catch {
+      saveStatus = "idle";
+    }
+  }
+
+  async function saveCurrentPage() {
+    saveStatus = "saving";
+    saveError = "";
+    try {
+      const result = await browser.runtime.sendMessage({ type: "SAVE_CURRENT_TAB" });
+      if (result?.success) {
+        saveStatus = "saved";
+        await load(debouncedQuery, activeView, sortOrder);
+      } else {
+        saveStatus = "error";
+        saveError = "Failed to save page.";
+      }
+    } catch (e) {
+      saveStatus = "error";
+      saveError = e instanceof Error ? e.message : "Unknown error";
+    }
+  }
+
+  // Check current tab status on mount
+  $effect(() => {
+    checkCurrentTab();
+  });
 
   async function handleAction(action: string, article: Article) {
     try {
@@ -116,6 +153,28 @@
 <div class="relative h-full flex flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm">
   <!-- Header -->
   <div class="flex-shrink-0 border-b border-gray-200 dark:border-gray-700 px-3 pt-3 pb-2 space-y-2">
+    <!-- Save button -->
+    <div>
+      {#if saveStatus === "saving"}
+        <button disabled class="w-full py-2 px-4 rounded-md bg-blue-300 dark:bg-blue-800 text-white text-sm cursor-not-allowed">
+          Saving...
+        </button>
+      {:else if saveStatus === "saved"}
+        <button disabled class="w-full py-2 px-4 rounded-md bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 text-sm cursor-not-allowed">
+          Already saved ✓
+        </button>
+      {:else if saveStatus === "error"}
+        <p class="text-red-500 dark:text-red-400 text-xs mb-1">{saveError}</p>
+        <button onclick={saveCurrentPage} class="w-full py-2 px-4 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm transition-colors">
+          Save this page
+        </button>
+      {:else}
+        <button onclick={saveCurrentPage} class="w-full py-2 px-4 rounded-md bg-blue-600 hover:bg-blue-700 text-white text-sm transition-colors">
+          Save this page
+        </button>
+      {/if}
+    </div>
+
     <!-- Search -->
     <input
       type="search"
