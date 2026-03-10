@@ -1,8 +1,242 @@
 <script lang="ts">
-  // Sidebar stub - Phase 1 implementation
+  import {
+    getArticles, getStats, updateArticle, deleteArticle,
+    deleteArticles, searchArticles, getSettings, updateSettings,
+  } from "../../lib/storage";
+  import ArticleCard from "../../components/ArticleCard.svelte";
+  import SettingsView from "../../components/SettingsView.svelte";
+  import type { Article, FilterOptions, StashReadSettings } from "../../lib/models";
+
+  let articles = $state<Article[]>([]);
+  let stats = $state({ total: 0, unread: 0, favorites: 0 });
+  let settings = $state<StashReadSettings | null>(null);
+  let loading = $state(true);
+  let error = $state("");
+
+  let rawQuery = $state("");
+  let debouncedQuery = $state("");
+  let debounceTimer: ReturnType<typeof setTimeout> | undefined;
+
+  let activeView = $state<FilterOptions["view"]>("all");
+  let sortOrder = $state<FilterOptions["sortOrder"]>("newest");
+  let selectionMode = $state(false);
+  let selectedIds = $state(new Set<string>());
+  let showSettings = $state(false);
+
+  // Debounce search query
+  $effect(() => {
+    clearTimeout(debounceTimer);
+    const q = rawQuery;
+    debounceTimer = setTimeout(() => { debouncedQuery = q; }, 300);
+    return () => clearTimeout(debounceTimer);
+  });
+
+  // Reload when filters or debounced query changes
+  $effect(() => {
+    load(debouncedQuery, activeView, sortOrder);
+  });
+
+  async function load(query: string, view: FilterOptions["view"], sort: FilterOptions["sortOrder"]) {
+    try {
+      loading = true;
+      error = "";
+      articles = query.trim()
+        ? await searchArticles(query)
+        : await getArticles({ view, sortOrder: sort });
+      stats = await getStats();
+      if (!settings) {
+        settings = await getSettings();
+        applyTheme(settings.theme);
+      }
+    } catch (e) {
+      error = e instanceof Error ? e.message : "Load failed";
+    } finally {
+      loading = false;
+    }
+  }
+
+  async function handleAction(action: string, article: Article) {
+    try {
+      if (action === "mark-read") await updateArticle(article.id, { isRead: true });
+      else if (action === "mark-unread") await updateArticle(article.id, { isRead: false });
+      else if (action === "toggle-favorite") await updateArticle(article.id, { isFavorite: !article.isFavorite });
+      else if (action === "copy-url") await navigator.clipboard.writeText(article.url);
+      else if (action === "delete") await deleteArticle(article.id);
+      await load(debouncedQuery, activeView, sortOrder);
+    } catch (e) {
+      error = e instanceof Error ? e.message : "Action failed";
+    }
+  }
+
+  function toggleSelection(id: string, checked: boolean) {
+    const next = new Set(selectedIds);
+    checked ? next.add(id) : next.delete(id);
+    selectedIds = next;
+  }
+
+  function selectAll() { selectedIds = new Set(articles.map((a) => a.id)); }
+  function selectUnread() { selectedIds = new Set(articles.filter((a) => !a.isRead).map((a) => a.id)); }
+  function selectFavorites() { selectedIds = new Set(articles.filter((a) => a.isFavorite).map((a) => a.id)); }
+
+  async function markSelectedRead() {
+    for (const id of selectedIds) await updateArticle(id, { isRead: true });
+    exitSelection();
+    await load(debouncedQuery, activeView, sortOrder);
+  }
+
+  async function deleteSelected() {
+    await deleteArticles(Array.from(selectedIds));
+    exitSelection();
+    await load(debouncedQuery, activeView, sortOrder);
+  }
+
+  function exitSelection() {
+    selectionMode = false;
+    selectedIds = new Set();
+  }
+
+  async function applySettings(updates: Partial<StashReadSettings>) {
+    await updateSettings(updates);
+    settings = await getSettings();
+    applyTheme(settings.theme);
+  }
+
+  function applyTheme(theme: StashReadSettings["theme"]) {
+    const html = document.documentElement;
+    if (theme === "dark") html.classList.add("dark");
+    else if (theme === "light") html.classList.remove("dark");
+    else {
+      window.matchMedia("(prefers-color-scheme: dark)").matches
+        ? html.classList.add("dark")
+        : html.classList.remove("dark");
+    }
+  }
 </script>
 
-<div class="p-4 h-full">
-  <h1 class="text-lg font-semibold text-gray-900">StashRead</h1>
-  <p class="text-sm text-gray-500 mt-1">Sidebar coming in Phase 1.</p>
+<div class="relative h-full flex flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm">
+  <!-- Header -->
+  <div class="flex-shrink-0 border-b border-gray-200 dark:border-gray-700 px-3 pt-3 pb-2 space-y-2">
+    <!-- Search -->
+    <input
+      type="search"
+      bind:value={rawQuery}
+      placeholder="Search articles..."
+      class="w-full px-3 py-1.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+    />
+
+    <!-- Filters + sort + selection toggle -->
+    <div class="flex items-center gap-1">
+      {#each (["all", "unread", "favorites"] as const) as view}
+        <button
+          onclick={() => { activeView = view; }}
+          class="px-2.5 py-1 rounded-md transition-colors capitalize"
+          class:bg-blue-100={activeView === view}
+          class:text-blue-700={activeView === view}
+          class:dark:bg-blue-900={activeView === view}
+          class:dark:text-blue-300={activeView === view}
+          class:text-gray-600={activeView !== view}
+          class:dark:text-gray-400={activeView !== view}
+          class:hover:bg-gray-100={activeView !== view}
+          class:dark:hover:bg-gray-800={activeView !== view}
+        >{view}</button>
+      {/each}
+
+      <div class="ml-auto flex items-center gap-1">
+        <select
+          bind:value={sortOrder}
+          class="text-xs bg-transparent border border-gray-200 dark:border-gray-700 rounded px-1 py-0.5 text-gray-600 dark:text-gray-400 focus:outline-none"
+        >
+          <option value="newest">Newest</option>
+          <option value="oldest">Oldest</option>
+          <option value="title">Title</option>
+          <option value="domain">Domain</option>
+        </select>
+
+        <button
+          onclick={() => { selectionMode = !selectionMode; if (!selectionMode) selectedIds = new Set(); }}
+          class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400"
+          title="Selection mode"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Quick-select row (selection mode only) -->
+    {#if selectionMode}
+      <div class="flex gap-3">
+        <button onclick={selectAll} class="text-xs text-blue-600 dark:text-blue-400 hover:underline">All visible</button>
+        <button onclick={selectUnread} class="text-xs text-blue-600 dark:text-blue-400 hover:underline">Unread</button>
+        <button onclick={selectFavorites} class="text-xs text-blue-600 dark:text-blue-400 hover:underline">Favorites</button>
+      </div>
+    {/if}
+  </div>
+
+  <!-- Article list -->
+  <div class="flex-1 overflow-y-auto">
+    {#if loading}
+      <div class="flex items-center justify-center py-12 text-gray-400 dark:text-gray-500">Loading...</div>
+    {:else if error}
+      <div class="px-4 py-4 text-red-500 dark:text-red-400">{error}</div>
+    {:else if articles.length === 0}
+      <div class="flex flex-col items-center justify-center py-16 text-gray-400 dark:text-gray-500">
+        <svg class="w-10 h-10 mb-3 opacity-40" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+        </svg>
+        <p class="font-medium">{rawQuery ? "No results found" : "No articles yet"}</p>
+        {#if !rawQuery}
+          <p class="text-xs mt-1">Save articles using the popup or Alt+S</p>
+        {/if}
+      </div>
+    {:else}
+      {#each articles as article (article.id)}
+        <ArticleCard
+          {article}
+          {selectionMode}
+          selected={selectedIds.has(article.id)}
+          onselect={toggleSelection}
+          onaction={handleAction}
+        />
+      {/each}
+    {/if}
+  </div>
+
+  <!-- Selection toolbar -->
+  {#if selectionMode && selectedIds.size > 0}
+    <div class="flex-shrink-0 flex items-center gap-3 px-4 py-2 bg-blue-50 dark:bg-blue-900/30 border-t border-blue-200 dark:border-blue-800">
+      <span class="font-medium text-blue-700 dark:text-blue-300">{selectedIds.size} selected</span>
+      <button onclick={markSelectedRead} class="text-blue-700 dark:text-blue-300 hover:underline">Mark read</button>
+      <button onclick={deleteSelected} class="text-red-600 dark:text-red-400 hover:underline ml-auto">Delete</button>
+      <button onclick={exitSelection} class="text-gray-500 dark:text-gray-400 hover:underline">Cancel</button>
+    </div>
+  {/if}
+
+  <!-- Footer -->
+  {#if !selectionMode}
+    <div class="flex-shrink-0 flex items-center justify-between px-4 py-2 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
+      <span>{stats.total} articles ({stats.unread} unread)</span>
+      <button
+        onclick={() => { showSettings = !showSettings; }}
+        class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+        title="Settings"
+      >
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+      </button>
+    </div>
+  {/if}
+
+  <!-- Settings overlay -->
+  {#if showSettings && settings}
+    <div class="absolute inset-0 bg-white dark:bg-gray-900 z-30 flex flex-col">
+      <SettingsView
+        {settings}
+        onclose={() => { showSettings = false; }}
+        onsave={applySettings}
+      />
+    </div>
+  {/if}
 </div>
