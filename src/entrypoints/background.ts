@@ -1,4 +1,5 @@
 import { saveArticle, getArticles, getSettings, getStats } from "../lib/storage";
+import { estimateReadTime } from "../lib/utils";
 import type { Article } from "../lib/models";
 
 type Message = { type: "SAVE_CURRENT_TAB" } | { type: "GET_CURRENT_TAB_STATUS" };
@@ -54,26 +55,53 @@ async function saveCurrentTab(): Promise<SaveResult> {
   const [tab] = await browser.tabs.query({ active: true, currentWindow: true });
   if (!tab?.url) return { success: false };
 
-  let excerpt = "";
-  let title = tab.title ?? tab.url;
-
-  if (tab.id) {
-    try {
-      const response = await browser.tabs.sendMessage(tab.id, { type: "EXTRACT_EXCERPT" });
-      if (response) {
-        excerpt = response.excerpt ?? "";
-        title = response.title || title;
-      }
-    } catch {
-      // Content script not available on restricted pages — continue without excerpt
-    }
-  }
-
   const articles = await getArticles();
   const existing = articles.find((a) => a.url === tab.url);
   if (existing) return { success: true, duplicate: true, article: existing };
 
-  const article = await saveArticle({ url: tab.url, title, excerpt });
+  let title = tab.title ?? tab.url;
+  let excerpt = "";
+  let content: string | undefined;
+  let textContent: string | undefined;
+  let byline: string | undefined;
+  let siteName: string | undefined;
+  let estimatedReadTime: number | undefined;
+  let extractionStatus: "success" | "failed" = "failed";
+
+  if (tab.id) {
+    try {
+      const response = await browser.tabs.sendMessage(tab.id, { type: "EXTRACT_CONTENT" });
+      if (response?.success) {
+        title = response.title || title;
+        excerpt = response.excerpt ?? "";
+        content = response.content;
+        textContent = response.textContent;
+        byline = response.byline;
+        siteName = response.siteName;
+        estimatedReadTime = textContent ? estimateReadTime(textContent) : undefined;
+        extractionStatus = "success";
+      } else if (response) {
+        title = response.title || title;
+        excerpt = response.excerpt ?? "";
+        extractionStatus = "failed";
+      }
+    } catch {
+      // Content script unavailable (restricted pages, PDFs, etc.)
+      extractionStatus = "failed";
+    }
+  }
+
+  const article = await saveArticle({
+    url: tab.url,
+    title,
+    excerpt,
+    content,
+    textContent,
+    byline,
+    siteName,
+    estimatedReadTime,
+    extractionStatus,
+  });
   await updateBadge();
   return { success: true, duplicate: false, article };
 }
