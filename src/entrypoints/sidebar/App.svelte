@@ -5,6 +5,7 @@
   } from "../../lib/storage";
   import ArticleCard from "../../components/ArticleCard.svelte";
   import SettingsView from "../../components/SettingsView.svelte";
+  import EpubDialog from "../../components/EpubDialog.svelte";
   import type { Article, FilterOptions, StashReadSettings } from "../../lib/models";
 
   type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -27,6 +28,8 @@
   let selectionMode = $state(false);
   let selectedIds = $state(new Set<string>());
   let showSettings = $state(false);
+  let showEpubDialog = $state(false);
+  let epubArticles = $state<Article[]>([]);
 
   // Debounce search query
   $effect(() => {
@@ -148,6 +151,22 @@
   function exitSelection() {
     selectionMode = false;
     selectedIds = new Set();
+  }
+
+  function openEpubExport(articleSubset: Article[]) {
+    epubArticles = articleSubset;
+    showEpubDialog = true;
+  }
+
+  async function handleEpubClose(didMarkAsRead: boolean) {
+    if (didMarkAsRead) {
+      for (const article of epubArticles) {
+        await updateArticle(article.id, { isRead: true });
+      }
+      await load(debouncedQuery, activeView, sortOrder);
+    }
+    showEpubDialog = false;
+    exitSelection();
   }
 
   async function applySettings(updates: Partial<StashReadSettings>) {
@@ -285,6 +304,7 @@
     <div class="flex-shrink-0 flex items-center gap-3 px-4 py-2 bg-blue-50 dark:bg-blue-900/30 border-t border-blue-200 dark:border-blue-800">
       <span class="font-medium text-blue-700 dark:text-blue-300">{selectedIds.size} selected</span>
       <button onclick={markSelectedRead} class="text-blue-700 dark:text-blue-300 hover:underline">Mark read</button>
+      <button onclick={() => openEpubExport(articles.filter((a) => selectedIds.has(a.id)))} class="text-blue-700 dark:text-blue-300 hover:underline">Export EPUB</button>
       <button onclick={deleteSelected} class="text-red-600 dark:text-red-400 hover:underline ml-auto">Delete</button>
       <button onclick={exitSelection} class="text-gray-500 dark:text-gray-400 hover:underline">Cancel</button>
     </div>
@@ -294,15 +314,27 @@
   {#if !selectionMode}
     <div class="flex-shrink-0 flex items-center justify-between px-4 py-2 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-400">
       <span>{stats.total} articles ({stats.unread} unread)</span>
-      <button
-        onclick={() => { showSettings = !showSettings; }}
-        class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
-        title="Settings"
-      >
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
-        </svg>
-      </button>
+      <div class="flex items-center gap-1">
+        <button
+          onclick={() => openEpubExport(articles)}
+          disabled={articles.length === 0}
+          class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-40"
+          title="Export EPUB"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+        </button>
+        <button
+          onclick={() => { showSettings = !showSettings; }}
+          class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
+          title="Settings"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+        </button>
+      </div>
     </div>
   {/if}
 
@@ -315,5 +347,13 @@
         onsave={applySettings}
       />
     </div>
+  {/if}
+
+  <!-- EPUB export dialog -->
+  {#if showEpubDialog}
+    <EpubDialog
+      articles={epubArticles}
+      onclose={handleEpubClose}
+    />
   {/if}
 </div>
