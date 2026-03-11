@@ -87,9 +87,27 @@
     }
   }
 
-  // Check current tab status on mount
+  // Check current tab status and keep in sync on navigation
   $effect(() => {
     checkCurrentTab();
+
+    function onActivated() {
+      checkCurrentTab();
+    }
+
+    function onUpdated(_tabId: number, changeInfo: { status?: string }) {
+      if (changeInfo.status === "complete") {
+        checkCurrentTab();
+      }
+    }
+
+    browser.tabs.onActivated.addListener(onActivated);
+    browser.tabs.onUpdated.addListener(onUpdated);
+
+    return () => {
+      browser.tabs.onActivated.removeListener(onActivated);
+      browser.tabs.onUpdated.removeListener(onUpdated);
+    };
   });
 
   async function handleAction(action: string, article: Article) {
