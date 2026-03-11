@@ -9,7 +9,6 @@ export default defineConfig({
 
   vite: () => ({
     plugins: [tailwindcss()],
-    server: { port: 4000 },
   }),
 
   manifest: {

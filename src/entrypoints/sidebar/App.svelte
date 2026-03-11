@@ -150,7 +150,7 @@
   }
 </script>
 
-<div class="relative h-full flex flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm">
+<div class="relative min-h-screen flex flex-col bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm">
   <!-- Header -->
   <div class="flex-shrink-0 border-b border-gray-200 dark:border-gray-700 px-3 pt-3 pb-2 space-y-2">
     <!-- Save button -->
