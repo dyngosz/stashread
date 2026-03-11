@@ -31,9 +31,18 @@ export default defineConfig({
         strict_min_version: "109.0",
       },
     },
+    browser_action: {
+      default_icon: {
+        16: "icons/icon-16.png",
+        32: "icons/icon-32.png",
+        48: "icons/icon-48.png",
+        96: "icons/icon-96.png",
+      },
+      default_title: "StashRead",
+    },
     sidebar_action: {
       default_title: "StashRead",
-      default_panel: "sidebar/index.html",
+      default_panel: "sidebar.html",
       default_icon: {
         16: "icons/icon-16.png",
         32: "icons/icon-32.png",
