@@ -8,14 +8,12 @@
     selected = false,
     onselect,
     onaction,
-    onopen,
   }: {
     article: Article;
     selectionMode?: boolean;
     selected?: boolean;
     onselect?: (id: string, checked: boolean) => void;
     onaction?: (action: string, article: Article) => void;
-    onopen?: (article: Article) => void;
   } = $props();
 
   let menuOpen = $state(false);
@@ -40,8 +38,6 @@
   function handleCardClick() {
     if (selectionMode) {
       onselect?.(article.id, !selected);
-    } else if (article.content && onopen) {
-      onopen(article);
     } else {
       browser.tabs.create({ url: article.url });
     }
