@@ -108,7 +108,6 @@ export async function deleteArticles(ids: string[]): Promise<void> {
 // Task 3 — search, settings, stats
 
 const DEFAULT_SETTINGS: StashReadSettings = {
-  kindleEmail: "",
   defaultView: "all",
   sortOrder: "newest",
   theme: "system",

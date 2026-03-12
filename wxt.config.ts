@@ -22,8 +22,6 @@ export default defineConfig({
       "activeTab",
       "tabs",
       "contextMenus",
-      "notifications",
-      "bookmarks",
     ],
     browser_specific_settings: {
       gecko: {

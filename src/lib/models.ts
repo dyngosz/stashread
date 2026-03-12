@@ -18,7 +18,6 @@ export interface Article {
 }
 
 export interface StashReadSettings {
-  kindleEmail: string;
   defaultView: "all" | "unread" | "favorites";
   sortOrder: "newest" | "oldest" | "title" | "domain";
   theme: "system" | "light" | "dark";

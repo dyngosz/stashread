@@ -2,7 +2,7 @@
   "name": "stashread",
   "description": "Save articles to read later. Generate EPUB reading packs for Kindle.",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "wxt",

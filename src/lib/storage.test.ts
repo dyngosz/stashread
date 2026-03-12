@@ -224,7 +224,6 @@ describe("searchArticles", () => {
 describe("getSettings", () => {
   it("returns default settings when none stored", async () => {
     expect(await getSettings()).toEqual({
-      kindleEmail: "",
       defaultView: "all",
       sortOrder: "newest",
       theme: "system",
@@ -235,10 +234,9 @@ describe("getSettings", () => {
   });
 
   it("returns previously saved settings", async () => {
-    await updateSettings({ theme: "dark", kindleEmail: "me@kindle.com" });
+    await updateSettings({ theme: "dark" });
     const settings = await getSettings();
     expect(settings.theme).toBe("dark");
-    expect(settings.kindleEmail).toBe("me@kindle.com");
   });
 });
 
