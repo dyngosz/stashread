@@ -8,12 +8,14 @@
     selected = false,
     onselect,
     onaction,
+    onopen,
   }: {
     article: Article;
     selectionMode?: boolean;
     selected?: boolean;
     onselect?: (id: string, checked: boolean) => void;
     onaction?: (action: string, article: Article) => void;
+    onopen?: (article: Article) => void;
   } = $props();
 
   let menuOpen = $state(false);
@@ -38,6 +40,8 @@
   function handleCardClick() {
     if (selectionMode) {
       onselect?.(article.id, !selected);
+    } else if (article.content && onopen) {
+      onopen(article);
     } else {
       browser.tabs.create({ url: article.url });
     }
@@ -81,7 +85,9 @@
     {#if article.excerpt}
       <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{article.excerpt}</p>
     {/if}
-    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{article.domain} · {formatRelativeTime(article.savedAt)}</p>
+    <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">
+  {#if article.byline}<span class="text-gray-500 dark:text-gray-400">{article.byline} · </span>{/if}{article.domain} · {formatRelativeTime(article.savedAt)}{#if article.estimatedReadTime} · {article.estimatedReadTime} min read{/if}
+</p>
     <div class="flex flex-wrap gap-1 mt-1.5" onclick={(e) => e.stopPropagation()}>
       {#each article.tags as tag (tag)}
         <button
