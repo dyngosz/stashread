@@ -2,6 +2,14 @@
 
 A Firefox extension for saving web articles to read later — and exporting them to Kindle as EPUB reading packs.
 
+## Screenshots
+
+**Sidebar — reading list**
+![Sidebar](docs/screenshots/sidebar.png)
+
+**Popup — quick save from any tab**
+![Popup](docs/screenshots/popup.png)
+
 ## Why I built this
 
 Pocket shut down in 2025. I needed a simple replacement that let me save articles while browsing Firefox, manage a reading list, and periodically export a batch of articles to my Kindle. I didn't want an account, a server, or a subscription — just a clean local tool that does exactly that and nothing more.
