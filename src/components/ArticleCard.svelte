@@ -82,18 +82,23 @@
       <p class="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-2">{article.excerpt}</p>
     {/if}
     <p class="text-xs text-gray-400 dark:text-gray-500 mt-1">{article.domain} · {formatRelativeTime(article.savedAt)}</p>
-    {#if article.tags.length > 0}
-      <div class="flex flex-wrap gap-1 mt-1.5" onclick={(e) => e.stopPropagation()}>
-        {#each article.tags as tag (tag)}
-          <button
-            onclick={(e) => { e.stopPropagation(); onaction?.(`filter-tag:${tag}`, article); }}
-            class="px-1.5 py-0.5 rounded-full text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-          >
-            {tag}
-          </button>
-        {/each}
-      </div>
-    {/if}
+    <div class="flex flex-wrap gap-1 mt-1.5" onclick={(e) => e.stopPropagation()}>
+      {#each article.tags as tag (tag)}
+        <button
+          onclick={(e) => { e.stopPropagation(); onaction?.(`filter-tag:${tag}`, article); }}
+          class="px-1.5 py-0.5 rounded-full text-[10px] bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+        >
+          {tag}
+        </button>
+      {/each}
+      <button
+        onclick={(e) => { e.stopPropagation(); onaction?.("edit-tags", article); }}
+        class="px-1.5 py-0.5 rounded-full text-[10px] text-gray-400 dark:text-gray-600 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+        title="Edit tags"
+      >
+        {article.tags.length === 0 ? "+ tag" : "✎"}
+      </button>
+    </div>
   </div>
 
   <!-- Favorite + overflow -->

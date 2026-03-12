@@ -93,6 +93,15 @@
     }
   }
 
+  // Reload when any storage change happens (saves from popup, keyboard shortcut, context menu)
+  $effect(() => {
+    function onStorageChange(_changes: object, area: string) {
+      if (area === "local") load(debouncedQuery, activeView, sortOrder, activeTag);
+    }
+    browser.storage.onChanged.addListener(onStorageChange);
+    return () => browser.storage.onChanged.removeListener(onStorageChange);
+  });
+
   // Check current tab status and keep in sync on navigation
   $effect(() => {
     checkCurrentTab();
@@ -129,7 +138,7 @@
         return;
       }
       else if (action === "edit-tags") {
-        editTagsArticle = editTagsArticle?.id === article.id ? null : article;
+        editTagsArticle = editTagsArticle?.id === article.id ? null : { ...article };
         return;
       }
       await load(debouncedQuery, activeView, sortOrder, activeTag);

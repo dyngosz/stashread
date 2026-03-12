@@ -12,6 +12,7 @@
   let localTags = $state<string[]>([...tags]);
   let inputValue = $state("");
   let inputEl = $state<HTMLInputElement | null>(null);
+  let closed = false;
 
   $effect(() => {
     inputEl?.focus();
@@ -36,6 +37,7 @@
       e.preventDefault();
       addTag();
     } else if (e.key === "Escape") {
+      closed = true;
       onclose();
     } else if (e.key === "Backspace" && inputValue === "" && localTags.length > 0) {
       localTags = localTags.slice(0, -1);
@@ -44,6 +46,7 @@
 
   function handleBlur() {
     setTimeout(() => {
+      if (closed) return;
       if (inputValue.trim()) addTag();
       onsave(localTags);
     }, 150);

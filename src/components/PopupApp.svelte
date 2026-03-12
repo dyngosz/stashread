@@ -87,9 +87,6 @@
         {/if}
       </div>
     </div>
-    <button onclick={savePage} class="w-full py-1.5 px-3 rounded-md border border-gray-200 dark:border-gray-700 text-xs text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-      Save again
-    </button>
   {:else if status === "saving"}
     <button disabled class="w-full py-2 px-4 rounded-md bg-blue-300 dark:bg-blue-800 text-white text-sm cursor-not-allowed">Saving...</button>
   {:else if status === "error"}
