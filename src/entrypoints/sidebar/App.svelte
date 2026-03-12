@@ -6,6 +6,7 @@
   import ArticleCard from "../../components/ArticleCard.svelte";
   import SettingsView from "../../components/SettingsView.svelte";
   import EpubDialog from "../../components/EpubDialog.svelte";
+  import TagEditor from "../../components/TagEditor.svelte";
   import type { Article, FilterOptions, StashReadSettings } from "../../lib/models";
 
   type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -30,6 +31,8 @@
   let showSettings = $state(false);
   let showEpubDialog = $state(false);
   let epubArticles = $state<Article[]>([]);
+  let activeTag = $state<string | null>(null);
+  let editTagsArticle = $state<Article | null>(null);
 
   // Debounce search query
   $effect(() => {
@@ -41,16 +44,16 @@
 
   // Reload when filters or debounced query changes
   $effect(() => {
-    load(debouncedQuery, activeView, sortOrder);
+    load(debouncedQuery, activeView, sortOrder, activeTag);
   });
 
-  async function load(query: string, view: FilterOptions["view"], sort: FilterOptions["sortOrder"]) {
+  async function load(query: string, view: FilterOptions["view"], sort: FilterOptions["sortOrder"], tag: string | null) {
     try {
       loading = true;
       error = "";
       articles = query.trim()
         ? await searchArticles(query)
-        : await getArticles({ view, sortOrder: sort });
+        : await getArticles({ view, sortOrder: sort, tag: tag ?? undefined });
       stats = await getStats();
       if (!settings) {
         settings = await getSettings();
@@ -120,7 +123,16 @@
       else if (action === "toggle-favorite") await updateArticle(article.id, { isFavorite: !article.isFavorite });
       else if (action === "copy-url") await navigator.clipboard.writeText(article.url);
       else if (action === "delete") await deleteArticle(article.id);
-      await load(debouncedQuery, activeView, sortOrder);
+      else if (action.startsWith("filter-tag:")) {
+        const tag = action.slice("filter-tag:".length);
+        activeTag = activeTag === tag ? null : tag;
+        return;
+      }
+      else if (action === "edit-tags") {
+        editTagsArticle = editTagsArticle?.id === article.id ? null : article;
+        return;
+      }
+      await load(debouncedQuery, activeView, sortOrder, activeTag);
     } catch (e) {
       error = e instanceof Error ? e.message : "Action failed";
     }
@@ -145,7 +157,7 @@
   async function deleteSelected() {
     await deleteArticles(Array.from(selectedIds));
     exitSelection();
-    await load(debouncedQuery, activeView, sortOrder);
+    await load(debouncedQuery, activeView, sortOrder, activeTag);
   }
 
   function exitSelection() {
@@ -163,7 +175,7 @@
       for (const article of epubArticles) {
         await updateArticle(article.id, { isRead: true });
       }
-      await load(debouncedQuery, activeView, sortOrder);
+      await load(debouncedQuery, activeView, sortOrder, activeTag);
     }
     showEpubDialog = false;
     exitSelection();
@@ -260,6 +272,21 @@
       </div>
     </div>
 
+    <!-- Active tag filter pill -->
+    {#if activeTag}
+      <div class="flex items-center gap-1.5">
+        <span class="text-xs text-gray-500 dark:text-gray-400">Tag:</span>
+        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
+          {activeTag}
+          <button
+            onclick={() => { activeTag = null; }}
+            class="hover:text-blue-900 dark:hover:text-blue-100 ml-0.5"
+            aria-label="Clear tag filter"
+          >×</button>
+        </span>
+      </div>
+    {/if}
+
     <!-- Quick-select row (selection mode only) -->
     {#if selectionMode}
       <div class="flex gap-3">
@@ -295,6 +322,21 @@
           onselect={toggleSelection}
           onaction={handleAction}
         />
+        {#if editTagsArticle?.id === article.id}
+          <TagEditor
+            tags={article.tags}
+            onsave={async (newTags) => {
+              try {
+                await updateArticle(article.id, { tags: newTags });
+                await load(debouncedQuery, activeView, sortOrder, activeTag);
+              } catch (e) {
+                error = e instanceof Error ? e.message : "Failed to save tags";
+              }
+              editTagsArticle = null;
+            }}
+            onclose={() => { editTagsArticle = null; }}
+          />
+        {/if}
       {/each}
     {/if}
   </div>
