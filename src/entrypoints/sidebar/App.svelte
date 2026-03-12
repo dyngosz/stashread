@@ -342,9 +342,9 @@ import SettingsView from "../../components/SettingsView.svelte";
               } catch (e) {
                 error = e instanceof Error ? e.message : "Failed to save tags";
               }
-              editTagsArticle = null;
+              if (editTagsArticle?.id === article.id) editTagsArticle = null;
             }}
-            onclose={() => { editTagsArticle = null; }}
+            onclose={() => { if (editTagsArticle?.id === article.id) editTagsArticle = null; }}
           />
         {/if}
       {/each}
