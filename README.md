@@ -59,6 +59,14 @@ Everything runs inside the browser. Articles are saved to `browser.storage.local
 - Manage your personal tag library
 - Export and import a full JSON backup of your reading list
 
+## Privacy
+
+All article data (titles, URLs, content, tags) is stored locally in `browser.storage.local` and never sent to any server.
+
+One exception: favicons are loaded from Google's favicon service (`google.com/s2/favicons`) when an article is saved. This means Google receives the domain of each site you save — the same as if you visited that site. No article content or personal data is involved. If this concerns you, the favicons can be disabled by removing the favicon fetch in the source.
+
+No telemetry, no analytics, no accounts.
+
 ## Development
 
 ```bash
