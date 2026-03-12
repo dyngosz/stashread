@@ -16,15 +16,30 @@
   let generating = $state(false);
   let error = $state("");
 
+  const allTags = $derived([...new Set(articles.flatMap((a) => a.tags))].sort());
+  let selectedTags = $state<Set<string>>(new Set());
+  const filteredArticles = $derived(
+    selectedTags.size === 0
+      ? articles
+      : articles.filter((a) => a.tags.some((t) => selectedTags.has(t)))
+  );
+
+  function toggleTag(tag: string) {
+    const next = new Set(selectedTags);
+    if (next.has(tag)) next.delete(tag);
+    else next.add(tag);
+    selectedTags = next;
+  }
+
   async function generate() {
-    if (articles.length === 0) {
-      error = "No articles selected.";
+    if (filteredArticles.length === 0) {
+      error = "No articles match the selected tags.";
       return;
     }
     generating = true;
     error = "";
     try {
-      const blob = await generateEPUB(articles, { title, markAsRead });
+      const blob = await generateEPUB(filteredArticles, { title, markAsRead });
       const filename = title.replace(/[^a-z0-9]+/gi, "-").toLowerCase() + ".epub";
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
@@ -62,16 +77,34 @@
     <!-- Body -->
     <div class="px-4 py-4 space-y-4">
       <div>
-        <label class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">EPUB title</label>
+        <label for="epub-title" class="block text-xs font-medium text-gray-700 dark:text-gray-300 mb-1">EPUB title</label>
         <input
+          id="epub-title"
           type="text"
           bind:value={title}
           class="w-full px-3 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
         />
       </div>
 
+      <!-- Tag filter -->
+      {#if allTags.length > 0}
+        <div>
+          <p class="text-xs font-medium text-gray-700 dark:text-gray-300 mb-1.5">Filter by tag <span class="font-normal text-gray-400 dark:text-gray-500">(none = all articles)</span></p>
+          <div class="flex flex-wrap gap-1">
+            {#each allTags as tag (tag)}
+              <button
+                onclick={() => toggleTag(tag)}
+                class="px-2 py-0.5 rounded-full text-xs transition-colors {selectedTags.has(tag) ? 'bg-blue-600 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 hover:text-blue-700 dark:hover:text-blue-300'}"
+              >
+                {tag}
+              </button>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
       <p class="text-xs text-gray-500 dark:text-gray-400">
-        {articles.length} article{articles.length === 1 ? "" : "s"} will be included.
+        {filteredArticles.length} article{filteredArticles.length === 1 ? "" : "s"} will be included{selectedTags.size > 0 ? " (filtered)" : ""}.
       </p>
 
       <label class="flex items-center gap-2 cursor-pointer">
@@ -88,7 +121,7 @@
     <div class="px-4 py-3 border-t border-gray-200 dark:border-gray-700">
       <button
         onclick={generate}
-        disabled={generating || articles.length === 0}
+        disabled={generating || filteredArticles.length === 0}
         class="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm rounded-md transition-colors"
       >
         {generating ? "Generating..." : "Download EPUB"}

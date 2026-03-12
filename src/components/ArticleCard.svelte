@@ -134,7 +134,7 @@
         <!-- svelte-ignore a11y_click_events_have_key_events -->
         <!-- svelte-ignore a11y_no_static_element_interactions -->
         <div class="fixed inset-0 z-10" onclick={closeMenu}></div>
-        <div class="absolute right-0 mt-1 w-44 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-20 py-1">
+        <div class="absolute right-0 mt-1 w-44 bg-white dark:bg-gray-800 rounded-md shadow-lg border border-gray-200 dark:border-gray-700 z-20 py-1" onclick={(e) => e.stopPropagation()}>
           <button onclick={() => menuAction(article.isRead ? "mark-unread" : "mark-read")} class="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300">
             {article.isRead ? "Mark as unread" : "Mark as read"}
           </button>

@@ -334,9 +334,10 @@
         {#if editTagsArticle?.id === article.id}
           <TagEditor
             tags={article.tags}
+            knownTags={[...new Set([...(settings?.knownTags ?? []), ...articles.flatMap((a) => a.tags)])].sort()}
             onsave={async (newTags) => {
               try {
-                await updateArticle(article.id, { tags: newTags });
+                await updateArticle(article.id, { tags: [...newTags] });
                 await load(debouncedQuery, activeView, sortOrder, activeTag);
               } catch (e) {
                 error = e instanceof Error ? e.message : "Failed to save tags";

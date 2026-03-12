@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { tick } from "svelte";
   import type { StashReadSettings, ImportResult } from "../lib/models";
   import { exportJSON, importJSON } from "../lib/import-export";
 
@@ -16,18 +17,47 @@
   let theme = $state(settings.theme);
   // svelte-ignore state_referenced_locally
   let badgeCount = $state(settings.badgeCount);
-  let saving = $state(false);
+  // svelte-ignore state_referenced_locally
+  let knownTags = $state<string[]>([...(settings.knownTags ?? [])]);
+  let newTagInput = $state("");
+  let tagInputEl = $state<HTMLInputElement | null>(null);
 
   let importResult = $state<ImportResult | null>(null);
   let importError = $state("");
   let importing = $state(false);
   let exporting = $state(false);
 
-  async function save() {
-    saving = true;
-    await onsave({ theme, badgeCount });
-    saving = false;
+  function autoSave() {
+    onsave({ theme, badgeCount, knownTags: [...knownTags] });
+  }
+
+  async function addKnownTag() {
+    const raw = newTagInput.trim().toLowerCase();
+    if (!raw || knownTags.includes(raw) || raw.length > 30) {
+      newTagInput = "";
+      return;
+    }
+    knownTags = [...knownTags, raw];
+    newTagInput = "";
+    await tick();
+    tagInputEl?.focus();
+  }
+
+  function removeKnownTag(tag: string) {
+    knownTags = knownTags.filter((t) => t !== tag);
+  }
+
+  async function handleClose() {
+    if (newTagInput.trim()) addKnownTag();
+    await onsave({ theme, badgeCount, knownTags: [...knownTags] });
     onclose();
+  }
+
+  function handleTagInputKeydown(e: KeyboardEvent) {
+    if (e.key === "Enter" || e.key === ",") {
+      e.preventDefault();
+      addKnownTag();
+    }
   }
 
   async function handleExportJSON() {
@@ -68,7 +98,7 @@
 <div class="flex flex-col h-full">
   <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
     <h2 class="text-base font-semibold text-gray-900 dark:text-gray-100">Settings</h2>
-    <button onclick={onclose} aria-label="Close settings" class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400">
+    <button onclick={handleClose} aria-label="Close settings" class="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400">
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
       </svg>
@@ -82,7 +112,7 @@
       <div class="space-y-2">
         {#each (["system", "light", "dark"] as const) as option}
           <label class="flex items-center gap-2 cursor-pointer">
-            <input type="radio" name="theme" value={option} bind:group={theme} class="text-blue-600" />
+            <input type="radio" name="theme" value={option} bind:group={theme} onchange={autoSave} class="text-blue-600" />
             <span class="text-sm text-gray-700 dark:text-gray-300 capitalize">{option}</span>
           </label>
         {/each}
@@ -95,10 +125,42 @@
       <div class="space-y-2">
         {#each ([["unread", "Show unread count"], ["total", "Show total count"], ["off", "Off"]] as const) as [value, label]}
           <label class="flex items-center gap-2 cursor-pointer">
-            <input type="radio" name="badge" {value} bind:group={badgeCount} class="text-blue-600" />
+            <input type="radio" name="badge" {value} bind:group={badgeCount} onchange={autoSave} class="text-blue-600" />
             <span class="text-sm text-gray-700 dark:text-gray-300">{label}</span>
           </label>
         {/each}
+      </div>
+    </section>
+
+    <!-- Tags -->
+    <section>
+      <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Tags</h3>
+      <p class="text-xs text-gray-500 dark:text-gray-400 mb-2">Define your tags here to quickly apply them to articles.</p>
+      <div class="flex flex-wrap gap-1 mb-2 empty:mb-0">
+        {#each knownTags as tag (tag)}
+          <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300">
+            {tag}
+            <button
+              onclick={() => removeKnownTag(tag)}
+              class="hover:text-blue-900 dark:hover:text-blue-100 leading-none"
+              aria-label="Remove tag {tag}"
+            >×</button>
+          </span>
+        {/each}
+      </div>
+      <div class="flex gap-2">
+        <input
+          bind:this={tagInputEl}
+          type="text"
+          bind:value={newTagInput}
+          onkeydown={handleTagInputKeydown}
+          placeholder="Add a tag..."
+          class="flex-1 px-2.5 py-1.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 dark:text-gray-100"
+        />
+        <button
+          onclick={addKnownTag}
+          class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"
+        >Add</button>
       </div>
     </section>
 
@@ -149,15 +211,5 @@
         {/if}
       </div>
     </section>
-  </div>
-
-  <div class="flex-shrink-0 px-4 py-3 border-t border-gray-200 dark:border-gray-700">
-    <button
-      onclick={save}
-      disabled={saving}
-      class="w-full py-2 px-4 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white text-sm rounded-md transition-colors"
-    >
-      {saving ? "Saving..." : "Save settings"}
-    </button>
   </div>
 </div>

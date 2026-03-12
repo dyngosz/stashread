@@ -24,6 +24,7 @@ export interface StashReadSettings {
   theme: "system" | "light" | "dark";
   badgeCount: "unread" | "total" | "off";
   keyboardShortcut: string;
+  knownTags: string[];
 }
 
 export interface FilterOptions {

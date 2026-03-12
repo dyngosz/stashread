@@ -114,6 +114,7 @@ const DEFAULT_SETTINGS: StashReadSettings = {
   theme: "system",
   badgeCount: "unread",
   keyboardShortcut: "Alt+S",
+  knownTags: [],
 };
 
 export async function searchArticles(query: string): Promise<Article[]> {
@@ -138,7 +139,8 @@ export async function getSettings(): Promise<StashReadSettings> {
 
 export async function updateSettings(updates: Partial<StashReadSettings>): Promise<void> {
   const current = await getSettings();
-  await browser.storage.local.set({ [SETTINGS_KEY]: { ...current, ...updates } });
+  const safe = { ...updates, ...(updates.knownTags ? { knownTags: [...updates.knownTags] } : {}) };
+  await browser.storage.local.set({ [SETTINGS_KEY]: { ...current, ...safe } });
 }
 
 export async function getStats(): Promise<{ total: number; unread: number; favorites: number }> {

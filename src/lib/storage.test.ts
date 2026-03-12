@@ -230,6 +230,7 @@ describe("getSettings", () => {
       theme: "system",
       badgeCount: "unread",
       keyboardShortcut: "Alt+S",
+      knownTags: [],
     });
   });
 
