@@ -4,6 +4,7 @@
     deleteArticles, searchArticles, getSettings, updateSettings,
   } from "../../lib/storage";
   import ArticleCard from "../../components/ArticleCard.svelte";
+  import ReaderView from "../../components/ReaderView.svelte";
   import SettingsView from "../../components/SettingsView.svelte";
   import EpubDialog from "../../components/EpubDialog.svelte";
   import TagEditor from "../../components/TagEditor.svelte";
@@ -33,6 +34,7 @@
   let epubArticles = $state<Article[]>([]);
   let activeTag = $state<string | null>(null);
   let editTagsArticle = $state<Article | null>(null);
+  let activeArticle = $state<Article | null>(null);
 
   // Debounce search query
   $effect(() => {
@@ -144,6 +146,18 @@
       await load(debouncedQuery, activeView, sortOrder, activeTag);
     } catch (e) {
       error = e instanceof Error ? e.message : "Action failed";
+    }
+  }
+
+  async function openArticle(article: Article) {
+    activeArticle = { ...article, isRead: true };
+    if (!article.isRead) {
+      try {
+        await updateArticle(article.id, { isRead: true });
+        await load(debouncedQuery, activeView, sortOrder, activeTag);
+      } catch (e) {
+        error = e instanceof Error ? e.message : "Failed to mark as read";
+      }
     }
   }
 
@@ -330,6 +344,7 @@
           selected={selectedIds.has(article.id)}
           onselect={toggleSelection}
           onaction={handleAction}
+          onopen={openArticle}
         />
         {#if editTagsArticle?.id === article.id}
           <TagEditor
@@ -397,6 +412,16 @@
         {settings}
         onclose={() => { showSettings = false; }}
         onsave={applySettings}
+      />
+    </div>
+  {/if}
+
+  <!-- Reader view overlay -->
+  {#if activeArticle}
+    <div class="absolute inset-0 bg-white dark:bg-gray-900 z-30 flex flex-col">
+      <ReaderView
+        article={activeArticle}
+        onclose={() => { activeArticle = null; }}
       />
     </div>
   {/if}
