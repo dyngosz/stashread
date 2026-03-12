@@ -7,6 +7,7 @@
   let status = $state<Status>("loading");
   let savedArticle = $state<Article | null>(null);
   let errorMsg = $state("");
+  let sidebarOpen = $state(false);
 
   $effect(() => {
     initPopup();
@@ -29,6 +30,10 @@
     } catch {
       status = "unsaved";
     }
+
+    try {
+      sidebarOpen = await browser.sidebarAction.isOpen({});
+    } catch { /* fallback: assume closed */ }
   }
 
   async function savePage() {
@@ -49,10 +54,14 @@
     }
   }
 
-  async function openSidebar() {
+  async function toggleSidebar() {
     try {
-      await browser.sidebarAction.open();
-    } catch { /* already open or unsupported */ }
+      if (sidebarOpen) {
+        await browser.sidebarAction.close();
+      } else {
+        await browser.sidebarAction.open();
+      }
+    } catch { /* unsupported */ }
     finally {
       window.close();
     }
@@ -98,10 +107,10 @@
 
   <hr class="border-gray-100 dark:border-gray-800" />
 
-  <button onclick={openSidebar} class="w-full py-2 px-4 rounded-md bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm transition-colors flex items-center justify-center gap-2">
+  <button onclick={toggleSidebar} class="w-full py-2 px-4 rounded-md bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 text-sm transition-colors flex items-center justify-center gap-2">
     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
     </svg>
-    Open sidebar
+    {sidebarOpen ? "Close sidebar" : "Open sidebar"}
   </button>
 </div>
