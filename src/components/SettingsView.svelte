@@ -12,11 +12,10 @@
     onsave: (updates: Partial<StashReadSettings>) => Promise<void>;
   } = $props();
 
-  // Extract initial values outside $state() to avoid Svelte 5 state_referenced_locally error
-  const initialTheme = settings.theme;
-  const initialBadgeCount = settings.badgeCount;
-  let theme = $state(initialTheme);
-  let badgeCount = $state(initialBadgeCount);
+  // svelte-ignore state_referenced_locally
+  let theme = $state(settings.theme);
+  // svelte-ignore state_referenced_locally
+  let badgeCount = $state(settings.badgeCount);
   let saving = $state(false);
 
   let importResult = $state<ImportResult | null>(null);

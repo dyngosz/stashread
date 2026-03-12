@@ -25,11 +25,6 @@ export default defineBackground(() => {
     await updateBadge();
   });
 
-  // Toolbar icon: toggle sidebar
-  browser.browserAction.onClicked.addListener(() => {
-    browser.sidebarAction.toggle();
-  });
-
   // Keyboard shortcut: Alt+S saves current page
   browser.commands.onCommand.addListener(async (command) => {
     if (command !== "save-current-page") return;
